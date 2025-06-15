@@ -1,82 +1,80 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ObjectId } = require('mongodb');
-
+const mongoose = require('mongoose');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// Configuração MongoDB Atlas
-const uri = 'mongodb+srv://gabrielinsaner2020:8AgTehZmeoPu7M3Y@cluster0.yyv87hs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
-const client = new MongoClient(uri);
-let collection;
+// Conexão com MongoDB Atlas
+mongoose.connect('mongodb+srv://gabrielinsaner2020:8AgTehZmeoPu7M3Y@cluster0.yyv87hs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ Conectado ao MongoDB Atlas'))
+.catch(err => console.error('❌ Erro ao conectar MongoDB:', err));
 
+// Modelo de Notícia
+const noticiaSchema = new mongoose.Schema({
+  titulo: String,
+  conteudo: String,
+  imagem: String,
+  data: String
+});
+const Noticia = mongoose.model('Noticia', noticiaSchema);
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Conectar ao MongoDB
-async function conectarMongo() {
-  try {
-    await client.connect();
-    const db = client.db("kgrp"); // Nome do banco
-    collection = db.collection("noticias"); // Nome da coleção
-    console.log("✅ Conectado ao MongoDB Atlas");
-  } catch (err) {
-    console.error("Erro ao conectar no MongoDB:", err);
-  }
-}
+// Rotas da API
 
-// GET - Listar todas as notícias
+// GET - Todas as notícias
 app.get('/noticias', async (req, res) => {
-  const noticias = await collection.find().sort({ _id: -1 }).toArray();
+  const noticias = await Noticia.find().sort({ _id: -1 });
   res.json(noticias);
 });
 
-// GET - Obter notícia por ID
+// GET - Por ID
 app.get('/noticias/:id', async (req, res) => {
-  try {
-    const noticia = await collection.findOne({ _id: new ObjectId(req.params.id) });
-    if (!noticia) return res.status(404).json({ error: 'Notícia não encontrada' });
-    res.json(noticia);
-  } catch {
-    res.status(400).json({ error: 'ID inválido' });
-  }
+  const noticia = await Noticia.findById(req.params.id);
+  if (!noticia) return res.status(404).json({ error: 'Notícia não encontrada' });
+  res.json(noticia);
 });
 
-// POST - Criar nova notícia
+// POST - Criar nova
 app.post('/noticias', async (req, res) => {
-  const { titulo, conteudo, imagem, data } = req.body;
-  const nova = { titulo, conteudo, imagem, data: data || new Date().toLocaleDateString('pt-BR') };
-  const resultado = await collection.insertOne(nova);
-  res.json({ _id: resultado.insertedId, ...nova });
+  const nova = new Noticia({
+    titulo: req.body.titulo,
+    conteudo: req.body.conteudo,
+    imagem: req.body.imagem,
+    data: req.body.data || new Date().toLocaleDateString('pt-BR')
+  });
+  await nova.save();
+  res.json(nova);
 });
 
-// PUT - Editar notícia
+// PUT - Editar
 app.put('/noticias/:id', async (req, res) => {
-  const { titulo, conteudo, imagem } = req.body;
-  try {
-    const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(req.params.id) },
-      { $set: { titulo, conteudo, imagem } },
-      { returnDocument: 'after' }
-    );
-    res.json(result.value);
-  } catch {
-    res.status(400).json({ error: 'ID inválido' });
-  }
+  const noticia = await Noticia.findByIdAndUpdate(
+    req.params.id,
+    {
+      titulo: req.body.titulo,
+      conteudo: req.body.conteudo,
+      imagem: req.body.imagem
+    },
+    { new: true }
+  );
+  if (!noticia) return res.status(404).json({ error: 'Notícia não encontrada' });
+  res.json(noticia);
 });
 
-// DELETE - Apagar notícia
+// DELETE - Apagar
 app.delete('/noticias/:id', async (req, res) => {
-  try {
-    await collection.deleteOne({ _id: new ObjectId(req.params.id) });
-    res.json({ success: true });
-  } catch {
-    res.status(400).json({ error: 'ID inválido' });
-  }
+  const resultado = await Noticia.findByIdAndDelete(req.params.id);
+  if (!resultado) return res.status(404).json({ error: 'Notícia não encontrada' });
+  res.json({ success: true });
 });
 
-// Iniciar o servidor
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`✅ API rodando em http://localhost:${PORT}/noticias`);
-  conectarMongo(); // Conecta ao banco assim que o servidor inicia
 });
