@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // Conexão com MongoDB Atlas
-mongoose.connect('mongodb+srv://gabrielinsaner2020:8AgTehZmeoPu7M3Y@cluster0.yyv87hs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb://gabrielinsaner2020:<db_password>@cluster0-shard-00-00-yv87hs3.mongodb.net:27017,cluster0-shard-00-01-yv87hs3.mongodb.net:27017,cluster0-shard-00-02-yv87hs3.mongodb.net:27017/?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
