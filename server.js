@@ -17,6 +17,7 @@ function lerNoticias() {
 
 function salvarNoticias(noticias) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(noticias, null, 2));
+  fs.writeFileSync('./noticias_backup.json', JSON.stringify(noticias, null, 2)); // backup automático
 }
 
 // GET - Listar todas as notícias
